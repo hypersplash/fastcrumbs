@@ -26,7 +26,6 @@
 <body>
   <div class="container" role="application" aria-label="Calculator">
     <div id="history" class="history" aria-live="polite"></div>
-    <!-- Full keyboard on mobile: use inputmode="text" instead of numeric -->
     <input id="input" type="text" inputmode="text" autocomplete="off" placeholder="Type expression and press Enter — e.g. sqrt(16)" aria-label="Expression input" />
   </div>
 
@@ -153,10 +152,18 @@
       const item = document.createElement('div');
       item.className = 'history-item';
       let html = '<div class="expr">help</div><div style="color:#fff;margin-top:8px;line-height:1.5">';
-      fnNames.forEach(fn => {
-        const ex = typeof mathFns[fn] === 'function' ? `<code>${fn}(…)</code>` : `<code>${fn}</code>`;
-        html += `${ex}<br>`;
-      });
+      html += '<strong>Function Syntax Reference:</strong><br>';
+      html += '<br><strong>Constants:</strong> pi, e, ans<br>';
+      html += '<br><strong>Basic Math:</strong><br>abs(x), sqrt(x), cbrt(x), exp(x), ln(x), lb(x), lg(x), log(base, x), sgn(x), int(x), frac(x)<br>';
+      html += '<br><strong>Trigonometric:</strong><br>sin(x), cos(x), tan(x), cot(x), sec(x), csc(x), arcsin(x), arccos(x), arctan(x), arctan2(y, x)<br>';
+      html += '<br><strong>Hyperbolic:</strong><br>sinh(x), cosh(x), tanh(x), arsinh(x), arcosh(x), artanh(x)<br>';
+      html += '<br><strong>Rounding & Integers:</strong><br>floor(x), ceil(x), round(x, d), trunc(x, d), idiv(x, y), mod(x, y)<br>';
+      html += '<br><strong>Combinatorics:</strong><br>ncr(n, k), npr(n, k)<br>';
+      html += '<br><strong>Statistics:</strong><br>sum(a1, a2, ...), product(a1, a2, ...), average(a1, a2, ...), min(a1, a2, ...), max(a1, a2, ...)<br>';
+      html += '<br><strong>Gamma & Factorials:</strong><br>gamma(x), fact(n)<br>';
+      html += '<br><strong>Base Conversion:</strong><br>bin(x), oct(x), hex(x), dec(x)<br>';
+      html += '<br><strong>Operators:</strong><br>+, -, *, /, ^ or ** (power), % (percent), ! (factorial)<br>';
+      html += '<br><strong>Usage:</strong><br>Functions use parentheses with comma-separated arguments.<br>For example: f(x), g(x, y), h(a1, a2, a3)<br>';
       html += '</div>';
       item.innerHTML = html;
       hist.appendChild(item);
