@@ -1,0 +1,454 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>chrono.io</title>
+    <style>
+        /* ============================================ */
+        /* --- Root Variables & Base Styles         --- */
+        /* ============================================ */
+        :root {
+            --bg-color: #000;
+            --primary-color: #fff;
+            --secondary-color: #333;
+            --secondary-hover: #555;
+            --accent-color: #f00;
+
+            --face-size: 400px;
+            --face-border: 4px;
+            --center-dot-size: 12px;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            background: var(--bg-color);
+            color: var(--primary-color);
+            font-family: monospace;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+        }
+
+        /* ============================================ */
+        /* --- UI Controls & Buttons                --- */
+        /* ============================================ */
+        .ui-controls {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            display: flex;
+            flex-direction: row-reverse;
+            gap: 10px;
+        }
+
+        .btn {
+            background: var(--secondary-color);
+            color: var(--primary-color);
+            border: none;
+            padding: 10px 20px;
+            cursor: pointer;
+            font-family: monospace;
+            transition: background 0.2s ease;
+        }
+
+        .btn:hover {
+            background: var(--secondary-hover);
+        }
+
+        #hideBtn {
+            position: fixed;
+            bottom: 20px;
+            left: 20px;
+            padding: 8px 12px;
+            font-size: 16px;
+        }
+
+        /* Hide buttons conditionally based on body classes set by JS */
+        .ui-hidden .ui-controls,
+        .ui-hidden #hideBtn {
+            display: none;
+        }
+
+        .state-digital #mode,
+        .state-digital #numbers {
+            display: none;
+        }
+
+        .state-analog #format {
+            display: none;
+        }
+        
+        /* ============================================ */
+        /* --- Clock Displays (Digital & Analog)    --- */
+        /* ============================================ */
+        #digital {
+            font-size: 80px;
+            letter-spacing: 5px;
+        }
+
+        .state-digital #analog { display: none; }
+        .state-analog #digital { display: none; }
+
+        .clock-face {
+            width: var(--face-size);
+            height: var(--face-size);
+            border: var(--face-border) solid var(--primary-color);
+            border-radius: 50%;
+            position: relative;
+        }
+
+        /* --- Analog Clock: Markers --- */
+        .marker {
+            position: absolute;
+            background: var(--primary-color);
+            left: 50%;
+            top: 0;
+            /* Position markers by rotating them around the clock's center point */
+            transform-origin: center calc(var(--face-size) / 2);
+        }
+
+        .hour-marker { width: 4px; height: 20px; margin-left: -2px; }
+        .minute-marker { width: 2px; height: 10px; margin-left: -1px; }
+
+        /* --- Analog Clock: Hands --- */
+        .hand {
+            position: absolute;
+            bottom: 50%;
+            left: 50%;
+            transform-origin: bottom center;
+            background: var(--primary-color);
+            /* Rotation is handled by a CSS variable updated from JavaScript */
+            transform: translateX(-50%) rotate(var(--rotation-angle, 0deg));
+        }
+
+        .hour { width: 6px; height: 120px; }
+        .minute { width: 4px; height: 160px; }
+        .second { width: 2px; height: 180px; background: var(--accent-color); }
+
+        .center {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            width: var(--center-dot-size);
+            height: var(--center-dot-size);
+            background: var(--primary-color);
+            border-radius: 50%;
+            transform: translate(-50%, -50%);
+            z-index: 10;
+        }
+
+        /* --- Analog Clock: Numbers --- */
+        .number {
+            position: absolute;
+            left: 50%;
+            top: 50%;
+            width: 40px;
+            height: 40px;
+            display: none; /* Hidden by default */
+            align-items: center;
+            justify-content: center;
+            margin-left: -20px;
+            margin-top: -20px;
+            font-size: 24px;
+            font-weight: bold;
+        }
+        
+        /* Show numbers when the parent has the 'show-numbers' class */
+        .show-numbers .number {
+            display: flex;
+        }
+    </style>
+</head>
+<body class="state-digital">
+    <div class="ui-controls">
+        <button id="toggle" class="btn">ANALOG</button>
+        <button id="format" class="btn">12H</button>
+        <button id="mode" class="btn">GLIDE</button>
+        <button id="numbers" class="btn">NUMBERS</button>
+    </div>
+    <button id="hideBtn" class="btn">HIDE</button>
+    
+    <div id="digital">00:00:00</div>
+    
+    <div id="analog">
+        <div class="clock-face">
+            <div id="markers"></div>
+            <div id="clockNumbers"></div>
+            <div class="hand hour" id="hour"></div>
+            <div class="hand minute" id="minute"></div>
+            <div class="hand second" id="second"></div>
+            <div class="center"></div>
+        </div>
+    </div>
+
+    <script>
+        // ============================================
+        // --- Application State & DOM Cache        ---
+        // ============================================
+
+        /**
+         * Caches references to frequently accessed DOM elements for performance.
+         */
+        const DOM = {
+            body: document.body,
+            digital: document.getElementById('digital'),
+            analog: document.getElementById('analog'),
+            toggle: document.getElementById('toggle'),
+            format: document.getElementById('format'),
+            mode: document.getElementById('mode'),
+            numbers: document.getElementById('numbers'),
+            hide: document.getElementById('hideBtn'),
+            hands: {
+                hour: document.getElementById('hour'),
+                minute: document.getElementById('minute'),
+                second: document.getElementById('second')
+            },
+            markers: document.getElementById('markers'),
+            clockNumbers: document.getElementById('clockNumbers'),
+            uiControls: document.querySelector('.ui-controls')
+        };
+
+        /**
+         * Holds the application's current state. All UI rendering is derived from this object.
+         */
+        const STATE = {
+            isDigital: true,
+            isGliding: false,
+            showNumbers: false,
+            is24Hour: true,
+            uiHidden: false,
+            animationFrame: null,
+            tickInterval: null
+        };
+
+        // ============================================
+        // --- Core Clock Logic                     ---
+        // ============================================
+
+        /**
+         * The main update loop, called every frame (glide) or every second (tick).
+         */
+        function updateClock() {
+            const now = new Date();
+            const time = {
+                hours: now.getHours(),
+                minutes: now.getMinutes(),
+                seconds: now.getSeconds(),
+                milliseconds: STATE.isGliding ? now.getMilliseconds() : 0
+            };
+
+            updateDigitalClock(time);
+            updateAnalogClock(time);
+        }
+
+        /**
+         * Updates the digital clock face with the current time.
+         */
+        function updateDigitalClock({ hours, minutes, seconds }) {
+            const pad = n => n.toString().padStart(2, '0');
+            let displayHours = hours;
+            let suffix = '';
+
+            if (!STATE.is24Hour) {
+                suffix = hours >= 12 ? ' PM' : ' AM';
+                displayHours = hours % 12 || 12; // Use `|| 12` for midnight (0) and noon (12)
+            }
+
+            DOM.digital.textContent = `${pad(displayHours)}:${pad(minutes)}:${pad(seconds)}${suffix}`;
+        }
+
+        /**
+         * Calculates and applies the correct rotation to the analog clock hands.
+         */
+        function updateAnalogClock({ hours, minutes, seconds, milliseconds }) {
+            // Create fractional time values for smooth, continuous hand movement.
+            // This ensures that the minute hand moves a little every second, and the hour
+            // hand moves a little every minute, perfectly in sync.
+            const secondsWithMs = seconds + milliseconds / 1000;
+            const minutesWithSeconds = minutes + secondsWithMs / 60;
+            const hoursWithMinutes = (hours % 12) + minutesWithSeconds / 60;
+
+            // Convert fractional times to degrees (e.g., a second is 1/60th of a circle, so 6 degrees).
+            const angles = {
+                second: secondsWithMs * 6,       // 360 / 60 = 6
+                minute: minutesWithSeconds * 6,  // 360 / 60 = 6
+                hour: hoursWithMinutes * 30      // 360 / 12 = 30
+            };
+
+            // Set CSS variables to rotate the hands via the `transform` property in CSS.
+            DOM.hands.second.style.setProperty('--rotation-angle', `${angles.second}deg`);
+            DOM.hands.minute.style.setProperty('--rotation-angle', `${angles.minute}deg`);
+            DOM.hands.hour.style.setProperty('--rotation-angle', `${angles.hour}deg`);
+        }
+
+        /**
+         * A recursive animation loop for smooth clock movement ("glide" mode).
+         */
+        function animate() {
+            updateClock();
+            if (STATE.isGliding) {
+                STATE.animationFrame = requestAnimationFrame(animate);
+            }
+        }
+
+        // ============================================
+        // --- UI Rendering & State Management      ---
+        // ============================================
+
+        /**
+         * Updates the entire UI based on the `STATE` object.
+         * This function uses CSS classes to control visibility, which is more efficient
+         * and maintainable than direct style manipulation.
+         */
+        function renderUI() {
+            // Set body classes to control which clock is visible.
+            DOM.body.classList.toggle('state-digital', STATE.isDigital);
+            DOM.body.classList.toggle('state-analog', !STATE.isDigital);
+            DOM.body.classList.toggle('ui-hidden', STATE.uiHidden);
+            
+            // Toggle number visibility on the analog clock.
+            DOM.clockNumbers.classList.toggle('show-numbers', STATE.showNumbers);
+
+            // Update button text content to reflect the current state.
+            DOM.toggle.textContent = STATE.isDigital ? 'ANALOG' : 'DIGITAL';
+            DOM.format.textContent = STATE.is24Hour ? '12H' : '24H';
+            DOM.mode.textContent = STATE.isGliding ? 'TICK' : 'GLIDE';
+            DOM.numbers.textContent = STATE.showNumbers ? 'MARKERS' : 'NUMBERS';
+        }
+
+        // ============================================
+        // --- Event Handlers & State Toggles       ---
+        // ============================================
+
+        function toggleClockMode() {
+            STATE.isDigital = !STATE.isDigital;
+            renderUI();
+        }
+
+        function toggleTimeFormat() {
+            STATE.is24Hour = !STATE.is24Hour;
+            updateClock(); // Instantly reflect format change
+            renderUI();
+        }
+
+        function toggleGlideMode() {
+            STATE.isGliding = !STATE.isGliding;
+            
+            if (STATE.isGliding) {
+                // --- Switch to Glide Mode ---
+                // Stop the one-second interval and start the smooth `requestAnimationFrame` loop.
+                clearInterval(STATE.tickInterval);
+                STATE.tickInterval = null;
+                animate();
+            } else {
+                // --- Switch to Tick Mode ---
+                // Stop the animation loop.
+                cancelAnimationFrame(STATE.animationFrame);
+                STATE.animationFrame = null;
+                // Immediately snap hands to the current discrete time.
+                updateClock();
+                // Restart the one-second interval.
+                if (!STATE.tickInterval) {
+                    STATE.tickInterval = setInterval(updateClock, 1000);
+                }
+            }
+            renderUI();
+        }
+
+        function toggleNumbers() {
+            STATE.showNumbers = !STATE.showNumbers;
+            renderUI();
+        }
+
+        function toggleUIVisibility() {
+            STATE.uiHidden = !STATE.uiHidden;
+            renderUI();
+        }
+
+        // ============================================
+        // --- One-Time Initialization              ---
+        // ============================================
+
+        /**
+         * Attaches event listeners to all control buttons.
+         */
+        function attachEventListeners() {
+            DOM.toggle.addEventListener('click', toggleClockMode);
+            DOM.format.addEventListener('click', toggleTimeFormat);
+            DOM.mode.addEventListener('click', toggleGlideMode);
+            DOM.numbers.addEventListener('click', toggleNumbers);
+            DOM.hide.addEventListener('click', toggleUIVisibility);
+        }
+
+        /**
+         * Generates the 60 markers for the analog clock face.
+         * Uses a DocumentFragment for performance to minimize DOM reflows.
+         */
+        function generateMarkers() {
+            const fragment = document.createDocumentFragment();
+            for (let i = 0; i < 60; i++) {
+                const marker = document.createElement('div');
+                const isHourMarker = i % 5 === 0;
+                marker.className = `marker ${isHourMarker ? 'hour-marker' : 'minute-marker'}`;
+                marker.style.transform = `rotate(${i * 6}deg)`;
+                fragment.appendChild(marker);
+            }
+            DOM.markers.appendChild(fragment);
+        }
+
+        /**
+         * Generates and positions the 12 numbers on the analog clock face.
+         */
+        function generateNumbers() {
+            const RADIUS = 150; // Distance of numbers from the center in pixels
+            const fragment = document.createDocumentFragment();
+            for (let i = 1; i <= 12; i++) {
+                const num = document.createElement('div');
+                num.className = 'number';
+
+                // Position numbers using polar coordinates (angle and radius).
+                // The angle is offset by -90 degrees to make 12 o'clock the top.
+                const angle = (i * 30 - 90) * (Math.PI / 180);
+                const x = Math.cos(angle) * RADIUS;
+                const y = Math.sin(angle) * RADIUS;
+
+                num.style.transform = `translate(${x}px, ${y}px)`;
+                num.textContent = i;
+                fragment.appendChild(num);
+            }
+            DOM.clockNumbers.appendChild(fragment);
+        }
+
+        /**
+         * Initializes the clock application on page load.
+         */
+        function init() {
+            // Generate the static parts of the analog clock face.
+            generateMarkers();
+            generateNumbers();
+            
+            // Set up all user interactions.
+            attachEventListeners();
+            
+            // Perform the initial render of the UI based on the default state.
+            renderUI();
+            updateClock();
+
+            // Start the main clock interval (defaults to "tick" mode).
+            if (!STATE.tickInterval) {
+                STATE.tickInterval = setInterval(updateClock, 1000);
+            }
+        }
+
+        // Start the application
+        init();
+    </script>
+</body>
+</html>
