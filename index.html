@@ -5,37 +5,81 @@
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>fastcrumbs</title>
   <style>
+    /* Basic reset & box-sizing */
     *{box-sizing:border-box}
     html,body{height:100%}
+
+    /* Page layout + typography */
     body{
       margin:0;
       font-family:ui-monospace, SFMono-Regular, Menlo, Monaco, "Roboto Mono", monospace;
-      background:#000;color:#fff;display:flex;align-items:center;justify-content:center;padding:20px;
+      background:#000;
+      color:#fff;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      padding:20px;
     }
+
+    /* App container */
     .container{width:100%;max-width:640px;padding:18px}
-    .history{max-height:320px;overflow:auto;margin-bottom:12px;padding:10px;border:2px solid #fff;background:transparent;font-size:15px}
+
+    /* Scrollable history area */
+    .history{
+      max-height:320px;
+      overflow:auto;
+      margin-bottom:12px;
+      padding:10px;
+      border:2px solid #fff;
+      background:transparent;
+      font-size:15px;
+    }
+
     .history-item{padding:8px 0;border-bottom:1px solid #222}
     .expr{color:#fff}
     .result{color:#fff;font-weight:600}
     .error{color:#ff6b6b}
-    input[type="text"]{width:100%;padding:12px;font-family:inherit;font-size:16px;background:#000;color:#fff;border:2px solid #fff;outline:none}
+
+    /* Input styling */
+    input[type="text"]{
+      width:100%;
+      padding:12px;
+      font-family:inherit;
+      font-size:16px;
+      background:#000;
+      color:#fff;
+      border:2px solid #fff;
+      outline:none;
+    }
     input[type="text"]:focus{border-color:#fff}
+
+    /* Respect reduced-motion preference */
     @media (prefers-reduced-motion:reduce){*{transition:none!important}}
   </style>
 </head>
 <body>
+  <!-- Main app container: history + input -->
   <div class="container" role="application" aria-label="Calculator">
     <div id="history" class="history" aria-live="polite"></div>
-    <input id="input" type="text" inputmode="text" autocomplete="off" placeholder="Type expression and press Enter — e.g. sqrt(16)" aria-label="Expression input" />
+    <input id="input" type="text" inputmode="text" autocomplete="off"
+           placeholder="Type expression and press Enter — e.g. sqrt(16)"
+           aria-label="Expression input" />
   </div>
 
   <script defer>
   (function () {
     'use strict';
 
+    // DOM references
     const inp = document.getElementById('input');
     const hist = document.getElementById('history');
 
+    /*
+     * mathFns: an object exposing constants and functions that expressions can use.
+     * - Numeric constants like pi, e
+     * - Persistent answer 'ans'
+     * - Common math helpers (trig, rounding, combinatorics, statistics, etc.)
+     */
     const mathFns = {
       pi: Math.PI,
       e: Math.E,
@@ -47,10 +91,13 @@
       ln: Math.log,
       lb: Math.log2,
       lg: Math.log10,
+      // custom log(base, x) so users can write log(2, 8) => 3
       log: (base, x) => Math.log(x) / Math.log(base),
       sgn: x => (x === 0 ? 0 : x > 0 ? 1 : -1),
       int: Math.trunc,
       frac: x => x - Math.trunc(x),
+
+      // Trig
       sin: Math.sin,
       cos: Math.cos,
       tan: Math.tan,
@@ -61,27 +108,40 @@
       arccos: Math.acos,
       arctan: Math.atan,
       arctan2: Math.atan2,
+
+      // Hyperbolic
       sinh: Math.sinh,
       cosh: Math.cosh,
       tanh: Math.tanh,
       arsinh: Math.asinh,
       arcosh: Math.acosh,
       artanh: Math.atanh,
+
+      // Rounding & utilities
       floor: Math.floor,
       ceil: Math.ceil,
       round: (x, d = 0) => Math.round(x * Math.pow(10, d)) / Math.pow(10, d),
       trunc: (x, d = 0) => Math.trunc(x * Math.pow(10, d)) / Math.pow(10, d),
       idiv: (x, y) => Math.trunc(x / y),
       mod: (x, y) => ((x % y) + y) % y,
+
+      // Combinatorics
       ncr: (n, k) => { if (k > n) return 0; if (k === 0 || k === n) return 1; let r = 1; for (let i = 1; i <= k; i++) r *= (n - k + i) / i; return r; },
       npr: (n, k) => { let r = 1; for (let i = 0; i < k; i++) r *= (n - i); return r; },
+
+      // Aggregates
       sum: (...a) => a.reduce((s, v) => s + v, 0),
       product: (...a) => a.reduce((s, v) => s * v, 1),
       average: (...a) => a.length ? mathFns.sum(...a) / a.length : NaN,
       min: Math.min,
       max: Math.max,
+
+      // Gamma & factorial
       gamma: (function () {
-        const lanczos = [0.99999999999980993, 676.5203681218851, -1259.1392167224028, 771.32342877765313, -176.61502916214059, 12.507343278686905, -0.13857109526572012, 9.9843695780195716e-6, 1.5056327351493116e-7];
+        // Lanczos approximation for Gamma function
+        const lanczos = [0.99999999999980993, 676.5203681218851, -1259.1392167224028,
+          771.32342877765313, -176.61502916214059, 12.507343278686905,
+          -0.13857109526572012, 9.9843695780195716e-6, 1.5056327351493116e-7];
         return function gamma(z) {
           if (z < 0.5) return Math.PI / (Math.sin(Math.PI * z) * gamma(1 - z));
           z -= 1; const g = 7; let a = lanczos[0];
@@ -91,32 +151,55 @@
         };
       })(),
       fact: n => mathFns.gamma(n + 1),
+
+      // Base conversions
       bin: x => '0b' + Math.trunc(x).toString(2),
       oct: x => '0o' + Math.trunc(x).toString(8),
       hex: x => '0x' + Math.trunc(x).toString(16),
       dec: x => parseInt(x, 10)
     };
 
+    // Build a regex matching function names so we can rewrite calls like "sin(x)" -> "mathFns.sin(x)"
     const fnNames = Object.keys(mathFns).sort((a, b) => b.length - a.length);
-    const fnRegex = new RegExp('\\b(' + fnNames.map(s => s.replace(/[.*+?^${}()|[\\]\\]/g, '\\$&')).join('|') + ')\\s*\\(', 'g');
+    const fnRegex = new RegExp('\(' + fnNames.map(s => s.replace(/[.*+?^${}()|[\\]\\]/g, '\\$&')).join('|') + ')\\s*\\(', 'g');
+
+    // Simple expression cache to speed up repeated evaluations
     const cache = new Map();
+
+    // Blacklist potentially dangerous identifiers to avoid access to the host environment
     const blacklist = /\b(window|document|fetch|XMLHttpRequest|navigator|process|require|import|globalThis|Function|eval)\b/;
 
+    /**
+     * evalExpr
+     * - Sanitizes and compiles a user expression into a Function that receives mathFns
+     * - Supports shorthand: ^ for power, ! for factorial, percent handling, and function name rewriting
+     * - Caches compiled functions for reuse
+     */
     function evalExpr(raw) {
       const expr = raw.trim().replace(/\u00A0/g, ' ').replace(/\s*;\s*/g, ',');
       if (!expr) return { ok: false, err: 'empty' };
       if (blacklist.test(expr)) return { ok: false, err: 'forbidden token' };
+
       if (cache.has(expr)) {
+        // Fast path: use cached compiled function
         try {
           const compiled = cache.get(expr);
           const res = compiled(mathFns);
           mathFns.ans = res;
           return { ok: true, val: res };
         } catch (e) {
+          // If execution fails, drop from cache and report error
           cache.delete(expr);
           return { ok: false, err: e.message };
         }
       }
+
+      // Transformations:
+      // - ^ -> ** (exponentiation)
+      // - named constants -> mathFns.constant
+      // - named functions -> mathFns.function(
+      // - trailing factorials like 5! -> mathFns.fact(5)
+      // - percents like 50% -> (50/100)
       let proc = expr.replace(/\^/g, '**')
         .replace(/\bpi\b/gi, 'mathFns.pi')
         .replace(/\be\b(?![\w])/gi, 'mathFns.e')
@@ -124,30 +207,42 @@
         .replace(fnRegex, 'mathFns.$1(')
         .replace(/(\d+(?:\.\d+)?)!/g, 'mathFns.fact($1)')
         .replace(/(\d+(?:\.\d+)?)%/g, '($1/100)');
+
       try {
-        const compiled = new Function('mathFns', `"use strict"; return (${proc});`);
+        // Compile the expression into a function that receives mathFns
+        const compiled = new Function('mathFns', '"use strict"; return (' + proc + ');');
         cache.set(expr, compiled);
         const val = compiled(mathFns);
-        mathFns.ans = val;
+        mathFns.ans = val; // store last answer
         return { ok: true, val };
       } catch (err) {
         return { ok: false, err: err.message };
       }
     }
 
+    /**
+     * addHistory
+     * - Appends an item to the history panel with the original expression and result (or error)
+     */
     function addHistory(expr, res) {
       const item = document.createElement('div');
       item.className = 'history-item';
       if (res.ok) {
+        // Prefer a compact string for numbers, otherwise JSON.stringify for arrays/objects
         const resultText = typeof res.val === 'number' ? String(res.val) : JSON.stringify(res.val);
         item.innerHTML = `<div class="expr">${expr}</div><div class="result">= ${resultText}</div>`;
       } else {
         item.innerHTML = `<div class="expr">${expr}</div><div class="error">Error: ${res.err}</div>`;
       }
       hist.appendChild(item);
+      // Scroll to bottom on next frame for smoothness
       requestAnimationFrame(() => { hist.scrollTop = hist.scrollHeight; });
     }
 
+    /**
+     * showHelp
+     * - Inserts a help reference into the history panel explaining available functions and usage
+     */
     function showHelp() {
       const item = document.createElement('div');
       item.className = 'history-item';
@@ -170,6 +265,7 @@
       requestAnimationFrame(() => { hist.scrollTop = hist.scrollHeight; });
     }
 
+    // Keyboard handling: Enter submits the expression
     inp.addEventListener('keydown', ev => {
       if (ev.key === 'Enter') {
         const raw = inp.value;
@@ -181,7 +277,9 @@
       }
     });
 
+    // Focus the input on load for immediate typing
     window.addEventListener('load', () => inp.focus());
+
   })();
   </script>
 </body>
