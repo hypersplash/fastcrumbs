@@ -13,7 +13,7 @@ but where’s the style in that?
 Here’s what Fastcrumbs is perfect for:
 
 - ⚡ **Quick Math, Anywhere** – Great for devs, students, or anyone too lazy to open a full app.  
-- 💻 **Dashboard Integration** – Embed it on internal tools, Raspberry Pi setups, or local dashboards.  
+- 💻 **Integration EVERYWHERE!** – Embed it on your website! (this is manual for now, I don't provide one to embed)
 - 🧮 **Minimalist Bliss** – Because math deserves to look this clean.  
 
 ---
