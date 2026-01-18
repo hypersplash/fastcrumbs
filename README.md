@@ -1,18 +1,20 @@
-# chrono.io
-**Time, time, and just time.**
+# fastcrumbs.io
+**SpeedCrunch of the web :D**
 
-....What more could you possibly ask for? It's a clock, in HTML
+A fast, clean, no-nonsense plaintext calculator — right in your browser.
 
 ---
 
 # What’s this even for?
 
-Well, you could just look at your taskbar clock or look at your phone… but where’s the fun in that?  
-Here are a few things you can do with chrono.io:
+Sure, you could open your system calculator or punch some numbers into Google…  
+but where’s the style in that?
 
-- 🖥️ **Display Time on Another Screen** - Perfect for dashboards, Raspberry Pi displays, or smart mirrors.  
-- ⏰ **Analog Clock Setup** - Use it to check and align your analog clocks precisely.  
-- 🎨 **Just for Fun** - Because sometimes, having a pretty clock on your screen feels oddly satisfying.  
+Here’s what Fastcrumbs is perfect for:
+
+- ⚡ **Quick Math, Anywhere** – Great for devs, students, or anyone too lazy to open a full app.  
+- 💻 **Dashboard Integration** – Embed it on internal tools, Raspberry Pi setups, or local dashboards.  
+- 🧮 **Minimalist Bliss** – Because math deserves to look this clean.  
 
 ---
 
@@ -21,22 +23,25 @@ Here are a few things you can do with chrono.io:
 ## Locally
 1. Download or clone this repository:  
    ```bash
-   git clone https://github.com/hypersplash/chrono.io
+   git clone https://github.com/hypersplash/fastcrumbs
    ```
 2. Open `index.html` in your browser.  
-3. Enjoy 
+3. Type your equations and hit Enter.  
+4. Done. That’s literally it.  
 
-If you’d like, you can tweak index.html
+If you’re feeling fancy, tweak `index.html` — it’s just HTML, CSS, and a sprinkle of JS.
 
 ## Online
-1. Just head to [hypersplash.github.io/chrono.io](https://hypersplash.github.io/chrono.io/)
+Just go to [hypersplash.github.io/fastcrumbs](https://hypersplash.github.io/fastcrumbs)
+
 ---
 
 # Features
 
-- Minimalist and responsive design  
-- 100% client-side (entirely serverless)
-- Works on any modern browser  
+- Instant calculations — no backend, no loading screens  
+- Syntax highlighting for clarity  
+- 100% client-side and privacy-friendly  
+- Works everywhere a modern browser runs  
 
 ---
 
@@ -48,8 +53,8 @@ This project is licensed under the **MIT License** — see [`LICENSE`](LICENSE) 
 
 # Author & Credits
 
-Created by **Marcus "HyperSplash" Vũ**. On a caffeinated, sleepless night when I was trying to set my analog watch correctly
+Created by **Marcus "HyperSplash" Vũ**. On another sleepless, non-caffeinated night that I need a calculator that just works
 
 ---
 
-> *“Don't just tell the time, feel its movement. Intimately.”*
+> *“Math isn’t slow. You are.”*

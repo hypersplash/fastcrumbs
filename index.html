@@ -1,454 +1,348 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>chrono.io</title>
-    <style>
-        /* ============================================ */
-        /* --- Root Variables & Base Styles         --- */
-        /* ============================================ */
-        :root {
-            --bg-color: #000;
-            --primary-color: #fff;
-            --secondary-color: #333;
-            --secondary-hover: #555;
-            --accent-color: #f00;
-
-            --face-size: 400px;
-            --face-border: 4px;
-            --center-dot-size: 12px;
-        }
-
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-
-        body {
-            background: var(--bg-color);
-            color: var(--primary-color);
-            font-family: monospace;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            height: 100vh;
-        }
-
-        /* ============================================ */
-        /* --- UI Controls & Buttons                --- */
-        /* ============================================ */
-        .ui-controls {
-            position: fixed;
-            top: 20px;
-            right: 20px;
-            display: flex;
-            flex-direction: row-reverse;
-            gap: 10px;
-        }
-
-        .btn {
-            background: var(--secondary-color);
-            color: var(--primary-color);
-            border: none;
-            padding: 10px 20px;
-            cursor: pointer;
-            font-family: monospace;
-            transition: background 0.2s ease;
-        }
-
-        .btn:hover {
-            background: var(--secondary-hover);
-        }
-
-        #hideBtn {
-            position: fixed;
-            bottom: 20px;
-            left: 20px;
-            padding: 8px 12px;
-            font-size: 16px;
-        }
-
-        /* Hide buttons conditionally based on body classes set by JS */
-        .ui-hidden .ui-controls,
-        .ui-hidden #hideBtn {
-            display: none;
-        }
-
-        .state-digital #mode,
-        .state-digital #numbers {
-            display: none;
-        }
-
-        .state-analog #format {
-            display: none;
-        }
-        
-        /* ============================================ */
-        /* --- Clock Displays (Digital & Analog)    --- */
-        /* ============================================ */
-        #digital {
-            font-size: 80px;
-            letter-spacing: 5px;
-        }
-
-        .state-digital #analog { display: none; }
-        .state-analog #digital { display: none; }
-
-        .clock-face {
-            width: var(--face-size);
-            height: var(--face-size);
-            border: var(--face-border) solid var(--primary-color);
-            border-radius: 50%;
-            position: relative;
-        }
-
-        /* --- Analog Clock: Markers --- */
-        .marker {
-            position: absolute;
-            background: var(--primary-color);
-            left: 50%;
-            top: 0;
-            /* Position markers by rotating them around the clock's center point */
-            transform-origin: center calc(var(--face-size) / 2);
-        }
-
-        .hour-marker { width: 4px; height: 20px; margin-left: -2px; }
-        .minute-marker { width: 2px; height: 10px; margin-left: -1px; }
-
-        /* --- Analog Clock: Hands --- */
-        .hand {
-            position: absolute;
-            bottom: 50%;
-            left: 50%;
-            transform-origin: bottom center;
-            background: var(--primary-color);
-            /* Rotation is handled by a CSS variable updated from JavaScript */
-            transform: translateX(-50%) rotate(var(--rotation-angle, 0deg));
-        }
-
-        .hour { width: 6px; height: 120px; }
-        .minute { width: 4px; height: 160px; }
-        .second { width: 2px; height: 180px; background: var(--accent-color); }
-
-        .center {
-            position: absolute;
-            top: 50%;
-            left: 50%;
-            width: var(--center-dot-size);
-            height: var(--center-dot-size);
-            background: var(--primary-color);
-            border-radius: 50%;
-            transform: translate(-50%, -50%);
-            z-index: 10;
-        }
-
-        /* --- Analog Clock: Numbers --- */
-        .number {
-            position: absolute;
-            left: 50%;
-            top: 50%;
-            width: 40px;
-            height: 40px;
-            display: none; /* Hidden by default */
-            align-items: center;
-            justify-content: center;
-            margin-left: -20px;
-            margin-top: -20px;
-            font-size: 24px;
-            font-weight: bold;
-        }
-        
-        /* Show numbers when the parent has the 'show-numbers' class */
-        .show-numbers .number {
-            display: flex;
-        }
-    </style>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Calculator</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+    body {
+      font-family: 'Consolas', 'Monaco', monospace;
+      background: #1e1e1e;
+      color: #d4d4d4;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      min-height: 100vh;
+      padding: 20px;
+    }
+    .container {
+      width: 100%;
+      max-width: 600px;
+      background: #252526;
+      border-radius: 8px;
+      padding: 20px;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.5);
+    }
+    .history {
+      max-height: 300px;
+      overflow-y: auto;
+      margin-bottom: 15px;
+      padding: 10px;
+      background: #1e1e1e;
+      border-radius: 4px;
+      font-size: 14px;
+    }
+    .history-item {
+      margin-bottom: 8px;
+      padding: 4px 0;
+      border-bottom: 1px solid #333;
+    }
+    .history-item:last-child {
+      border-bottom: none;
+    }
+    .expr {
+      color: #9cdcfe;
+    }
+    .result {
+      color: #4ec9b0;
+      font-weight: bold;
+    }
+    .error {
+      color: #f48771;
+    }
+    input {
+      width: 100%;
+      padding: 12px;
+      font-family: inherit;
+      font-size: 16px;
+      background: #1e1e1e;
+      color: #d4d4d4;
+      border: 2px solid #3c3c3c;
+      border-radius: 4px;
+      outline: none;
+      transition: border-color 0.2s;
+    }
+    input:focus {
+      border-color: #007acc;
+    }
+  </style>
 </head>
-<body class="state-digital">
-    <div class="ui-controls">
-        <button id="toggle" class="btn">ANALOG</button>
-        <button id="format" class="btn">12H</button>
-        <button id="mode" class="btn">GLIDE</button>
-        <button id="numbers" class="btn">NUMBERS</button>
-    </div>
-    <button id="hideBtn" class="btn">HIDE</button>
-    
-    <div id="digital">00:00:00</div>
-    
-    <div id="analog">
-        <div class="clock-face">
-            <div id="markers"></div>
-            <div id="clockNumbers"></div>
-            <div class="hand hour" id="hour"></div>
-            <div class="hand minute" id="minute"></div>
-            <div class="hand second" id="second"></div>
-            <div class="center"></div>
+<body>
+  <div class="container">
+    <div class="history" id="history"></div>
+    <input 
+      type="text" 
+      id="input" 
+      placeholder="Type expression..."
+      autofocus
+    />
+  </div>
+
+  <script>
+    const inp = document.getElementById('input');
+    const hist = document.getElementById('history');
+
+    // Math functions
+    const mathFns = {
+      // Basic
+      abs: Math.abs,
+      sqrt: Math.sqrt,
+      cbrt: Math.cbrt,
+      exp: Math.exp,
+      ln: Math.log,
+      lb: Math.log2,
+      lg: Math.log10,
+      log: (n, x) => Math.log(x) / Math.log(n),
+      sgn: x => x >= 0 ? 1 : -1,
+      int: Math.trunc,
+      frac: x => x - Math.trunc(x),
+      
+      // Trig
+      sin: Math.sin,
+      cos: Math.cos,
+      tan: Math.tan,
+      cot: x => 1 / Math.tan(x),
+      sec: x => 1 / Math.cos(x),
+      csc: x => 1 / Math.sin(x),
+      arcsin: Math.asin,
+      arccos: Math.acos,
+      arctan: Math.atan,
+      arctan2: Math.atan2,
+      
+      // Hyperbolic
+      sinh: Math.sinh,
+      cosh: Math.cosh,
+      tanh: Math.tanh,
+      arsinh: Math.asinh,
+      arcosh: Math.acosh,
+      artanh: Math.atanh,
+      
+      // Complex (basic support)
+      real: x => typeof x === 'object' ? x.re : x,
+      imag: x => typeof x === 'object' ? x.im : 0,
+      phase: x => typeof x === 'object' ? Math.atan2(x.im, x.re) : 0,
+      
+      // Special
+      erf: x => {
+        // Approximation
+        const t = 1 / (1 + 0.5 * Math.abs(x));
+        const tau = t * Math.exp(-x*x - 1.26551223 + t * (1.00002368 + t * (0.37409196 + 
+                    t * (0.09678418 + t * (-0.18628806 + t * (0.27886807 + t * (-1.13520398 + 
+                    t * (1.48851587 + t * (-0.82215223 + t * 0.17087277)))))))));
+        return x >= 0 ? 1 - tau : tau - 1;
+      },
+      erfc: x => 1 - mathFns.erf(x),
+      gamma: x => {
+        // Stirling approximation
+        if (x < 0.5) return Math.PI / (Math.sin(Math.PI * x) * mathFns.gamma(1 - x));
+        x -= 1;
+        const g = 7;
+        const c = [0.99999999999980993, 676.5203681218851, -1259.1392167224028,
+                   771.32342877765313, -176.61502916214059, 12.507343278686905,
+                   -0.13857109526572012, 9.9843695780195716e-6, 1.5056327351493116e-7];
+        let a = c[0];
+        for (let i = 1; i < 9; i++) a += c[i] / (x + i);
+        const t = x + g + 0.5;
+        return Math.sqrt(2 * Math.PI) * Math.pow(t, x + 0.5) * Math.exp(-t) * a;
+      },
+      lngamma: x => Math.log(Math.abs(mathFns.gamma(x))),
+      
+      // Bitwise
+      and: (...args) => args.reduce((a, b) => a & b),
+      or: (...args) => args.reduce((a, b) => a | b),
+      xor: (...args) => args.reduce((a, b) => a ^ b),
+      not: x => ~x,
+      shift: (x, n) => n >= 0 ? x << n : x >> -n,
+      mask: (n, bits) => n & ((1 << bits) - 1),
+      unmask: (n, bits) => (n & (1 << (bits - 1))) ? n | ~((1 << bits) - 1) : n,
+      
+      // Bases
+      bin: x => '0b' + Math.trunc(x).toString(2),
+      oct: x => '0o' + Math.trunc(x).toString(8),
+      hex: x => '0x' + Math.trunc(x).toString(16),
+      dec: x => parseInt(x, 10),
+      
+      // Rounding
+      floor: Math.floor,
+      ceil: Math.ceil,
+      round: (x, d = 0) => Math.round(x * Math.pow(10, d)) / Math.pow(10, d),
+      trunc: (x, d = 0) => Math.trunc(x * Math.pow(10, d)) / Math.pow(10, d),
+      
+      // Integer
+      idiv: (x, y) => Math.trunc(x / y),
+      mod: (x, y) => ((x % y) + y) % y,
+      gcd: (...args) => {
+        const g = (a, b) => b === 0 ? a : g(b, a % b);
+        return args.reduce((a, b) => g(Math.abs(a), Math.abs(b)));
+      },
+      ncr: (n, k) => {
+        if (k > n) return 0;
+        if (k === 0 || k === n) return 1;
+        let r = 1;
+        for (let i = 1; i <= k; i++) r *= (n - k + i) / i;
+        return r;
+      },
+      npr: (n, k) => {
+        let r = 1;
+        for (let i = 0; i < k; i++) r *= (n - i);
+        return r;
+      },
+      
+      // Statistical
+      min: Math.min,
+      max: Math.max,
+      sum: (...args) => args.reduce((a, b) => a + b, 0),
+      product: (...args) => args.reduce((a, b) => a * b, 1),
+      average: (...args) => mathFns.sum(...args) / args.length,
+      median: (...args) => {
+        const s = args.slice().sort((a, b) => a - b);
+        const m = Math.floor(s.length / 2);
+        return s.length % 2 ? s[m] : (s[m - 1] + s[m]) / 2;
+      },
+      variance: (...args) => {
+        const avg = mathFns.average(...args);
+        return mathFns.sum(...args.map(x => (x - avg) ** 2)) / args.length;
+      },
+      stddev: (...args) => Math.sqrt(mathFns.variance(...args)),
+      absdev: (...args) => {
+        const avg = mathFns.average(...args);
+        return mathFns.sum(...args.map(x => Math.abs(x - avg))) / args.length;
+      },
+      
+      // Distributions
+      binommean: (n, p) => n * p,
+      binomvar: (n, p) => n * p * (1 - p),
+      geommean: p => 1 / p,
+      geomvar: p => (1 - p) / (p * p),
+      hypgeommean: (N, K, n) => n * K / N,
+      hypgeomvar: (N, K, n) => n * K * (N - K) * (N - n) / (N * N * (N - 1)),
+      poissonmean: lambda => lambda,
+      poissonvar: lambda => lambda,
+      
+      // Probabilities (simplified)
+      binompmf: (n, k, p) => mathFns.ncr(n, k) * Math.pow(p, k) * Math.pow(1 - p, n - k),
+      binomcdf: (n, k, p) => {
+        let s = 0;
+        for (let i = 0; i <= k; i++) s += mathFns.binompmf(n, i, p);
+        return s;
+      },
+      hypgeompmf: (N, K, n, k) => (mathFns.ncr(K, k) * mathFns.ncr(N - K, n - k)) / mathFns.ncr(N, n),
+      poissonpmf: (k, lambda) => Math.pow(lambda, k) * Math.exp(-lambda) / mathFns.gamma(k + 1),
+      poissoncdf: (k, lambda) => {
+        let s = 0;
+        for (let i = 0; i <= k; i++) s += mathFns.poissonpmf(i, lambda);
+        return s;
+      },
+      
+      // Angles
+      radians: x => x * Math.PI / 180,
+      degrees: x => x * 180 / Math.PI,
+      
+      // Constants
+      pi: Math.PI,
+      e: Math.E,
+      ans: 0
+    };
+
+    function eval_expr(expr) {
+      let proc = expr
+        .replace(/\^/g, '**')
+        .replace(/\bpi\b/g, Math.PI)
+        .replace(/\be\b(?![\w])/g, Math.E)
+        .replace(/\bans\b/g, mathFns.ans)
+        .replace(/(\d+)!/g, 'mathFns.gamma($1+1)')
+        .replace(/(\d+(\.\d+)?)%/g, '($1/100)');
+
+      // Replace function calls
+      Object.keys(mathFns).forEach(fn => {
+        const r = new RegExp('\\b' + fn + '\\s*\\(', 'g');
+        proc = proc.replace(r, `mathFns.${fn}(`);
+      });
+
+      try {
+        const res = Function('mathFns', `return ${proc}`)(mathFns);
+        mathFns.ans = res;
+        return { ok: true, val: res };
+      } catch (e) {
+        return { ok: false, err: e.message };
+      }
+    }
+
+    function addHist(expr, res) {
+      const item = document.createElement('div');
+      item.className = 'history-item';
+      
+      if (res.ok) {
+        item.innerHTML = `<div class="expr">${expr}</div><div class="result">= ${res.val}</div>`;
+      } else {
+        item.innerHTML = `<div class="expr">${expr}</div><div class="error">Error: ${res.err}</div>`;
+      }
+      
+      hist.appendChild(item);
+      hist.scrollTop = hist.scrollHeight;
+    }
+
+    function showHelp() {
+      const helpContent = `
+        <strong>Basic Math:</strong> abs(x), sqrt(x), cbrt(x), exp(x), ln(x), lb(x) [log2], lg(x) [log10], log(n;x), sgn(x), int(x), frac(x)<br><br>
+        <strong>Trigonometric:</strong> sin(x), cos(x), tan(x), cot(x), sec(x), csc(x), arcsin(x), arccos(x), arctan(x), arctan2(x;y)<br><br>
+        <strong>Hyperbolic:</strong> sinh(x), cosh(x), tanh(x), arsinh(x), arcosh(x), artanh(x)<br><br>
+        <strong>Complex Numbers:</strong> real(z), imag(z), phase(z), polar(z), cart(z) — Use 'j' for imaginary: 3+4j<br><br>
+        <strong>Special Functions:</strong> erf(x), erfc(x), gamma(x), lngamma(x)<br><br>
+        <strong>Bitwise Operations:</strong> and(x;y;...), or(x;y;...), xor(x;y;...), not(x), shift(x;n), mask(n;bits), unmask(n;bits)<br><br>
+        <strong>Base Conversions:</strong> bin(x), oct(x), hex(x), dec(x)<br><br>
+        <strong>Rounding:</strong> floor(x), ceil(x), round(x[;decimals]), trunc(x[;decimals])<br><br>
+        <strong>Integer Math:</strong> idiv(x;y), mod(x;y), gcd(x;y;...), ncr(n;k) [combinations], npr(n;k) [permutations]<br><br>
+        <strong>Statistical:</strong> min(...), max(...), sum(...), product(...), average(...), median(...), variance(...), stddev(...), absdev(...)<br><br>
+        <strong>Distribution Means/Vars:</strong> binommean(n;p), binomvar(n;p), geommean(p), geomvar(p), hypgeommean(N;K;n), hypgeomvar(N;K;n), poissonmean(λ), poissonvar(λ)<br><br>
+        <strong>Probabilities:</strong> binompmf(n;k;p), binomcdf(n;k;p), hypgeompmf(N;K;n;k), poissonpmf(k;λ), poissoncdf(k;λ)<br><br>
+        <strong>Angle Conversion:</strong> radians(x), degrees(x)<br><br>
+        <strong>Constants:</strong> pi, e, ans (last result)<br><br>
+        <strong>Operators:</strong> +, -, *, /, ^ or **, ! (factorial), % (percent)<br><br>
+        <strong>Examples:</strong><br>
+        • sqrt(16) = 4<br>
+        • sin(pi/2) = 1<br>
+        • gcd(48;18) = 6<br>
+        • ncr(10;3) = 120<br>
+        • average(1;2;3;4;5) = 3<br>
+        • 5! = 120<br>
+        • 50% = 0.5
+      `;
+      
+      const item = document.createElement('div');
+      item.className = 'history-item';
+      item.innerHTML = `
+        <div class="expr">help</div>
+        <div style="color: #d4d4d4; margin-top: 8px; line-height: 1.6;">
+          <div style="color: #9cdcfe; font-weight: bold; margin-bottom: 8px;">SpeedCrunch Functions (80+ built-in)</div>
+          ${helpContent}
         </div>
-    </div>
+      `;
+      
+      hist.appendChild(item);
+      hist.scrollTop = hist.scrollHeight;
+    }
 
-    <script>
-        // ============================================
-        // --- Application State & DOM Cache        ---
-        // ============================================
-
-        /**
-         * Caches references to frequently accessed DOM elements for performance.
-         */
-        const DOM = {
-            body: document.body,
-            digital: document.getElementById('digital'),
-            analog: document.getElementById('analog'),
-            toggle: document.getElementById('toggle'),
-            format: document.getElementById('format'),
-            mode: document.getElementById('mode'),
-            numbers: document.getElementById('numbers'),
-            hide: document.getElementById('hideBtn'),
-            hands: {
-                hour: document.getElementById('hour'),
-                minute: document.getElementById('minute'),
-                second: document.getElementById('second')
-            },
-            markers: document.getElementById('markers'),
-            clockNumbers: document.getElementById('clockNumbers'),
-            uiControls: document.querySelector('.ui-controls')
-        };
-
-        /**
-         * Holds the application's current state. All UI rendering is derived from this object.
-         */
-        const STATE = {
-            isDigital: true,
-            isGliding: false,
-            showNumbers: false,
-            is24Hour: true,
-            uiHidden: false,
-            animationFrame: null,
-            tickInterval: null
-        };
-
-        // ============================================
-        // --- Core Clock Logic                     ---
-        // ============================================
-
-        /**
-         * The main update loop, called every frame (glide) or every second (tick).
-         */
-        function updateClock() {
-            const now = new Date();
-            const time = {
-                hours: now.getHours(),
-                minutes: now.getMinutes(),
-                seconds: now.getSeconds(),
-                milliseconds: STATE.isGliding ? now.getMilliseconds() : 0
-            };
-
-            updateDigitalClock(time);
-            updateAnalogClock(time);
+    inp.addEventListener('keydown', e => {
+      if (e.key === 'Enter') {
+        const expr = inp.value.trim();
+        if (expr) {
+          if (expr.toLowerCase() === 'help') {
+            showHelp();
+            inp.value = '';
+            return;
+          }
+          const res = eval_expr(expr);
+          addHist(expr, res);
+          inp.value = '';
         }
-
-        /**
-         * Updates the digital clock face with the current time.
-         */
-        function updateDigitalClock({ hours, minutes, seconds }) {
-            const pad = n => n.toString().padStart(2, '0');
-            let displayHours = hours;
-            let suffix = '';
-
-            if (!STATE.is24Hour) {
-                suffix = hours >= 12 ? ' PM' : ' AM';
-                displayHours = hours % 12 || 12; // Use `|| 12` for midnight (0) and noon (12)
-            }
-
-            DOM.digital.textContent = `${pad(displayHours)}:${pad(minutes)}:${pad(seconds)}${suffix}`;
-        }
-
-        /**
-         * Calculates and applies the correct rotation to the analog clock hands.
-         */
-        function updateAnalogClock({ hours, minutes, seconds, milliseconds }) {
-            // Create fractional time values for smooth, continuous hand movement.
-            // This ensures that the minute hand moves a little every second, and the hour
-            // hand moves a little every minute, perfectly in sync.
-            const secondsWithMs = seconds + milliseconds / 1000;
-            const minutesWithSeconds = minutes + secondsWithMs / 60;
-            const hoursWithMinutes = (hours % 12) + minutesWithSeconds / 60;
-
-            // Convert fractional times to degrees (e.g., a second is 1/60th of a circle, so 6 degrees).
-            const angles = {
-                second: secondsWithMs * 6,       // 360 / 60 = 6
-                minute: minutesWithSeconds * 6,  // 360 / 60 = 6
-                hour: hoursWithMinutes * 30      // 360 / 12 = 30
-            };
-
-            // Set CSS variables to rotate the hands via the `transform` property in CSS.
-            DOM.hands.second.style.setProperty('--rotation-angle', `${angles.second}deg`);
-            DOM.hands.minute.style.setProperty('--rotation-angle', `${angles.minute}deg`);
-            DOM.hands.hour.style.setProperty('--rotation-angle', `${angles.hour}deg`);
-        }
-
-        /**
-         * A recursive animation loop for smooth clock movement ("glide" mode).
-         */
-        function animate() {
-            updateClock();
-            if (STATE.isGliding) {
-                STATE.animationFrame = requestAnimationFrame(animate);
-            }
-        }
-
-        // ============================================
-        // --- UI Rendering & State Management      ---
-        // ============================================
-
-        /**
-         * Updates the entire UI based on the `STATE` object.
-         * This function uses CSS classes to control visibility, which is more efficient
-         * and maintainable than direct style manipulation.
-         */
-        function renderUI() {
-            // Set body classes to control which clock is visible.
-            DOM.body.classList.toggle('state-digital', STATE.isDigital);
-            DOM.body.classList.toggle('state-analog', !STATE.isDigital);
-            DOM.body.classList.toggle('ui-hidden', STATE.uiHidden);
-            
-            // Toggle number visibility on the analog clock.
-            DOM.clockNumbers.classList.toggle('show-numbers', STATE.showNumbers);
-
-            // Update button text content to reflect the current state.
-            DOM.toggle.textContent = STATE.isDigital ? 'ANALOG' : 'DIGITAL';
-            DOM.format.textContent = STATE.is24Hour ? '12H' : '24H';
-            DOM.mode.textContent = STATE.isGliding ? 'TICK' : 'GLIDE';
-            DOM.numbers.textContent = STATE.showNumbers ? 'MARKERS' : 'NUMBERS';
-        }
-
-        // ============================================
-        // --- Event Handlers & State Toggles       ---
-        // ============================================
-
-        function toggleClockMode() {
-            STATE.isDigital = !STATE.isDigital;
-            renderUI();
-        }
-
-        function toggleTimeFormat() {
-            STATE.is24Hour = !STATE.is24Hour;
-            updateClock(); // Instantly reflect format change
-            renderUI();
-        }
-
-        function toggleGlideMode() {
-            STATE.isGliding = !STATE.isGliding;
-            
-            if (STATE.isGliding) {
-                // --- Switch to Glide Mode ---
-                // Stop the one-second interval and start the smooth `requestAnimationFrame` loop.
-                clearInterval(STATE.tickInterval);
-                STATE.tickInterval = null;
-                animate();
-            } else {
-                // --- Switch to Tick Mode ---
-                // Stop the animation loop.
-                cancelAnimationFrame(STATE.animationFrame);
-                STATE.animationFrame = null;
-                // Immediately snap hands to the current discrete time.
-                updateClock();
-                // Restart the one-second interval.
-                if (!STATE.tickInterval) {
-                    STATE.tickInterval = setInterval(updateClock, 1000);
-                }
-            }
-            renderUI();
-        }
-
-        function toggleNumbers() {
-            STATE.showNumbers = !STATE.showNumbers;
-            renderUI();
-        }
-
-        function toggleUIVisibility() {
-            STATE.uiHidden = !STATE.uiHidden;
-            renderUI();
-        }
-
-        // ============================================
-        // --- One-Time Initialization              ---
-        // ============================================
-
-        /**
-         * Attaches event listeners to all control buttons.
-         */
-        function attachEventListeners() {
-            DOM.toggle.addEventListener('click', toggleClockMode);
-            DOM.format.addEventListener('click', toggleTimeFormat);
-            DOM.mode.addEventListener('click', toggleGlideMode);
-            DOM.numbers.addEventListener('click', toggleNumbers);
-            DOM.hide.addEventListener('click', toggleUIVisibility);
-        }
-
-        /**
-         * Generates the 60 markers for the analog clock face.
-         * Uses a DocumentFragment for performance to minimize DOM reflows.
-         */
-        function generateMarkers() {
-            const fragment = document.createDocumentFragment();
-            for (let i = 0; i < 60; i++) {
-                const marker = document.createElement('div');
-                const isHourMarker = i % 5 === 0;
-                marker.className = `marker ${isHourMarker ? 'hour-marker' : 'minute-marker'}`;
-                marker.style.transform = `rotate(${i * 6}deg)`;
-                fragment.appendChild(marker);
-            }
-            DOM.markers.appendChild(fragment);
-        }
-
-        /**
-         * Generates and positions the 12 numbers on the analog clock face.
-         */
-        function generateNumbers() {
-            const RADIUS = 150; // Distance of numbers from the center in pixels
-            const fragment = document.createDocumentFragment();
-            for (let i = 1; i <= 12; i++) {
-                const num = document.createElement('div');
-                num.className = 'number';
-
-                // Position numbers using polar coordinates (angle and radius).
-                // The angle is offset by -90 degrees to make 12 o'clock the top.
-                const angle = (i * 30 - 90) * (Math.PI / 180);
-                const x = Math.cos(angle) * RADIUS;
-                const y = Math.sin(angle) * RADIUS;
-
-                num.style.transform = `translate(${x}px, ${y}px)`;
-                num.textContent = i;
-                fragment.appendChild(num);
-            }
-            DOM.clockNumbers.appendChild(fragment);
-        }
-
-        /**
-         * Initializes the clock application on page load.
-         */
-        function init() {
-            // Generate the static parts of the analog clock face.
-            generateMarkers();
-            generateNumbers();
-            
-            // Set up all user interactions.
-            attachEventListeners();
-            
-            // Perform the initial render of the UI based on the default state.
-            renderUI();
-            updateClock();
-
-            // Start the main clock interval (defaults to "tick" mode).
-            if (!STATE.tickInterval) {
-                STATE.tickInterval = setInterval(updateClock, 1000);
-            }
-        }
-
-        // Start the application
-        init();
-    </script>
+      }
+    });
+  </script>
 </body>
 </html>
