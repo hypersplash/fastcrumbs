@@ -235,10 +235,73 @@
 
     // Help content (kept short; UI shows full help on demand)
     function showHelp() {
-      const help = `Type expressions using standard math operators and functions from the built-in library. Examples:\nsqrt(16)  sin(pi/2)  5!  50%  ncr(10,3)`;
+      // Detailed, user-friendly help that pairs each command with a short description and an example.
+      const helpHtml = `
+        <div style="font-weight:bold;margin-bottom:8px">Built-in functions — description → example</div>
+
+        <div><strong>Basic</strong></div>
+        <div>abs(x) — absolute value → <code>abs(-3)</code></div>
+        <div>sqrt(x) — square root → <code>sqrt(25)</code></div>
+        <div>cbrt(x) — cube root → <code>cbrt(27)</code></div>
+        <div>exp(x) — e^x → <code>exp(1)</code></div>
+        <div>ln(x) — natural log → <code>ln(e)</code></div>
+        <div>lb(x) / lg(x) — log2 / log10 → <code>lb(8)</code> / <code>lg(100)</code></div>
+        <div>log(base, x) — log base n of x → <code>log(2, 8)</code></div>
+        <div>sgn(x) — sign → <code>sgn(-5)</code></div>
+        <div>int(x) — truncate toward zero → <code>int(3.9)</code></div>
+        <div>frac(x) — fractional part → <code>frac(3.75)</code></div>
+        <br>
+        <div><strong>Trigonometry</strong></div>
+        <div>sin(x), cos(x), tan(x) — x in radians → <code>sin(pi/2)</code></div>
+        <div>cot(x), sec(x), csc(x) — reciprocals → <code>cot(pi/4)</code></div>
+        <div>arcsin(x), arccos(x), arctan(x) — inverse trig → <code>arctan(1)</code></div>
+        <div>arctan2(y, x) — 2-argument arctan → <code>arctan2(1, -1)</code></div>
+        <br>
+        <div><strong>Hyperbolic</strong></div>
+        <div>sinh(x), cosh(x), tanh(x) → <code>sinh(1)</code></div>
+        <div>arsinh(x), arcosh(x), artanh(x) → <code>arsinh(1)</code></div>
+        <br>
+        <div><strong>Gamma / Factorial</strong></div>
+        <div>gamma(x) — gamma function → <code>gamma(5)</code> (equals 24)</div>
+        <div>fact(n) — factorial (convenience wrapper) → <code>fact(5)</code> = 120</div>
+        <br>
+        <div><strong>Rounding & integer</strong></div>
+        <div>floor(x), ceil(x), round(x, decimals), trunc(x, decimals) → <code>round(2.345, 2)</code></div>
+        <div>idiv(x, y) — integer division → <code>idiv(7, 2)</code></div>
+        <div>mod(x, y) — modulus (positive result) → <code>mod(-1, 5)</code> = 4</div>
+        <br>
+        <div><strong>Combinatorics</strong></div>
+        <div>ncr(n, k) — combinations → <code>ncr(10, 3)</code></div>
+        <div>npr(n, k) — permutations → <code>npr(6, 2)</code></div>
+        <br>
+        <div><strong>Statistics</strong></div>
+        <div>sum(...), product(...), average(...), min(...), max(...) → <code>average(1,2,3,4)</code></div>
+        <br>
+        <div><strong>Formatting</strong></div>
+        <div>bin(x), oct(x), hex(x) — convert integer to binary/octal/hex → <code>hex(255)</code></div>
+        <div>dec(x) — parse decimal integer → <code>dec("42")</code></div>
+        <br>
+        <div><strong>Angles & constants</strong></div>
+        <div>radians(deg), degrees(rad) — convert → <code>radians(180)</code> = pi</div>
+        <div>Constants: <code>pi</code>, <code>e</code>, <code>ans</code> (last result)</div>
+        <br>
+        <div><strong>Operators and shorthand</strong></div>
+        <div>+, -, *, /, ^ or ** (power), % (percent), ! (factorial via <code>n!</code>) → <code>5!</code> = 120, <code>50%</code> = 0.5</div>
+        <br>
+        <div style="font-weight:bold;margin-top:8px">Examples (direct mapping)</div>
+        <div><code>sqrt(16)</code> → 4</div>
+        <div><code>sin(pi/2)</code> → 1</div>
+        <div><code>gcd(48, 18)</code> → (use natively available functions in the full build)</div>
+        <div><code>ncr(10, 3)</code> → 120</div>
+        <div><code>average(1,2,3,4,5)</code> → 3</div>
+        <div><code>5!</code> → 120</div>
+        <div><code>50%</code> → 0.5</div>
+      `;
+
       const item = document.createElement('div');
       item.className = 'history-item';
-      item.innerHTML = `<div class="expr">help</div><div style="color:#fff;margin-top:8px;white-space:pre-wrap">${escapeHtml(help)}</div>`;
+      item.innerHTML = `<div class="expr">help</div><div style="color:#fff;margin-top:8px;line-height:1.5">${helpHtml}</div>`;
+
       hist.appendChild(item);
       requestAnimationFrame(() => { hist.scrollTop = hist.scrollHeight; });
     }
