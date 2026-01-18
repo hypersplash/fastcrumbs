@@ -26,7 +26,8 @@
 <body>
   <div class="container" role="application" aria-label="Calculator">
     <div id="history" class="history" aria-live="polite"></div>
-    <input id="input" type="text" inputmode="numeric" autocomplete="off" placeholder="Type expression and press Enter — e.g. sqrt(16)" aria-label="Expression input" />
+    <!-- Full keyboard on mobile: use inputmode="text" instead of numeric -->
+    <input id="input" type="text" inputmode="text" autocomplete="off" placeholder="Type expression and press Enter — e.g. sqrt(16)" aria-label="Expression input" />
   </div>
 
   <script defer>
@@ -37,12 +38,9 @@
     const hist = document.getElementById('history');
 
     const mathFns = {
-      // Constants
       pi: Math.PI,
       e: Math.E,
       ans: 0,
-
-      // Basic math
       abs: Math.abs,
       sqrt: Math.sqrt,
       cbrt: Math.cbrt,
@@ -54,8 +52,6 @@
       sgn: x => (x === 0 ? 0 : x > 0 ? 1 : -1),
       int: Math.trunc,
       frac: x => x - Math.trunc(x),
-
-      // Trigonometry
       sin: Math.sin,
       cos: Math.cos,
       tan: Math.tan,
@@ -66,40 +62,25 @@
       arccos: Math.acos,
       arctan: Math.atan,
       arctan2: Math.atan2,
-
-      // Hyperbolic
       sinh: Math.sinh,
       cosh: Math.cosh,
       tanh: Math.tanh,
       arsinh: Math.asinh,
       arcosh: Math.acosh,
       artanh: Math.atanh,
-
-      // Rounding
       floor: Math.floor,
       ceil: Math.ceil,
       round: (x, d = 0) => Math.round(x * Math.pow(10, d)) / Math.pow(10, d),
       trunc: (x, d = 0) => Math.trunc(x * Math.pow(10, d)) / Math.pow(10, d),
-
-      // Integer math
       idiv: (x, y) => Math.trunc(x / y),
       mod: (x, y) => ((x % y) + y) % y,
-
-      // Combinatorics
-      ncr: (n, k) => {
-        if (k > n) return 0; if (k === 0 || k === n) return 1;
-        let r = 1; for (let i = 1; i <= k; i++) r *= (n - k + i) / i; return r;
-      },
+      ncr: (n, k) => { if (k > n) return 0; if (k === 0 || k === n) return 1; let r = 1; for (let i = 1; i <= k; i++) r *= (n - k + i) / i; return r; },
       npr: (n, k) => { let r = 1; for (let i = 0; i < k; i++) r *= (n - i); return r; },
-
-      // Statistics
       sum: (...a) => a.reduce((s, v) => s + v, 0),
       product: (...a) => a.reduce((s, v) => s * v, 1),
       average: (...a) => a.length ? mathFns.sum(...a) / a.length : NaN,
       min: Math.min,
       max: Math.max,
-
-      // Gamma & factorial
       gamma: (function () {
         const lanczos = [0.99999999999980993, 676.5203681218851, -1259.1392167224028, 771.32342877765313, -176.61502916214059, 12.507343278686905, -0.13857109526572012, 9.9843695780195716e-6, 1.5056327351493116e-7];
         return function gamma(z) {
@@ -111,8 +92,6 @@
         };
       })(),
       fact: n => mathFns.gamma(n + 1),
-
-      // Base conversions
       bin: x => '0b' + Math.trunc(x).toString(2),
       oct: x => '0o' + Math.trunc(x).toString(8),
       hex: x => '0x' + Math.trunc(x).toString(16),
@@ -121,7 +100,6 @@
 
     const fnNames = Object.keys(mathFns).sort((a, b) => b.length - a.length);
     const fnRegex = new RegExp('\\b(' + fnNames.map(s => s.replace(/[.*+?^${}()|[\\]\\]/g, '\\$&')).join('|') + ')\\s*\\(', 'g');
-
     const cache = new Map();
     const blacklist = /\b(window|document|fetch|XMLHttpRequest|navigator|process|require|import|globalThis|Function|eval)\b/;
 
