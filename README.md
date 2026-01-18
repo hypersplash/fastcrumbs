@@ -1,4 +1,4 @@
-# fastcrumbs.io
+# fastcrumbs
 **SpeedCrunch of the web :D**
 
 A fast, clean, no-nonsense plaintext calculator — right in your browser.
