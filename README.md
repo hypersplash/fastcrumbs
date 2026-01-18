@@ -1,5 +1,5 @@
 # fastcrumbs
-**SpeedCrunch of the web :D**
+**Calculator for the philosophical ones**
 
 A fast, clean, no-nonsense plaintext calculator — right in your browser.
 
