@@ -11,9 +11,9 @@
       box-sizing: border-box;
     }
     body {
-      font-family: 'Consolas', 'Monaco', monospace;
-      background: #1e1e1e;
-      color: #d4d4d4;
+      font-family: monospace;
+      background: #000;
+      color: #fff;
       display: flex;
       justify-content: center;
       align-items: center;
@@ -23,52 +23,53 @@
     .container {
       width: 100%;
       max-width: 600px;
-      background: #252526;
-      border-radius: 8px;
+      background: transparent;
+      border-radius: 0;
       padding: 20px;
-      box-shadow: 0 4px 20px rgba(0,0,0,0.5);
+      box-shadow: none;
     }
     .history {
       max-height: 300px;
       overflow-y: auto;
       margin-bottom: 15px;
       padding: 10px;
-      background: #1e1e1e;
-      border-radius: 4px;
-      font-size: 14px;
+      background: transparent;
+      border-radius: 0;
+      font-size: 16px;
+      border: 2px solid #fff;
     }
     .history-item {
-      margin-bottom: 8px;
-      padding: 4px 0;
+      margin-bottom: 12px;
+      padding: 8px 0;
       border-bottom: 1px solid #333;
     }
     .history-item:last-child {
       border-bottom: none;
     }
     .expr {
-      color: #9cdcfe;
+      color: #fff;
     }
     .result {
-      color: #4ec9b0;
-      font-weight: bold;
+      color: #fff;
+      font-weight: normal;
     }
     .error {
-      color: #f48771;
+      color: #f00;
     }
     input {
       width: 100%;
       padding: 12px;
       font-family: inherit;
       font-size: 16px;
-      background: #1e1e1e;
-      color: #d4d4d4;
-      border: 2px solid #3c3c3c;
-      border-radius: 4px;
+      background: #000;
+      color: #fff;
+      border: 2px solid #fff;
+      border-radius: 0;
       outline: none;
       transition: border-color 0.2s;
     }
     input:focus {
-      border-color: #007acc;
+      border-color: #fff;
     }
   </style>
 </head>
@@ -318,8 +319,8 @@
       item.className = 'history-item';
       item.innerHTML = `
         <div class="expr">help</div>
-        <div style="color: #d4d4d4; margin-top: 8px; line-height: 1.6;">
-          <div style="color: #9cdcfe; font-weight: bold; margin-bottom: 8px;">SpeedCrunch Functions (80+ built-in)</div>
+        <div style="color: #fff; margin-top: 8px; line-height: 1.6;">
+          <div style="font-weight: bold; margin-bottom: 8px;">SpeedCrunch Functions (80+ built-in)</div>
           ${helpContent}
         </div>
       `;
