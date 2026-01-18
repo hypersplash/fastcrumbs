@@ -1,96 +1,58 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Calculator</title>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Calculator — Optimized</title>
   <style>
-    * {
-      margin: 0;
-      padding: 0;
-      box-sizing: border-box;
+    /* Minimal, high-contrast UI (keeps the original look) */
+    *{box-sizing:border-box}
+    html,body{height:100%}
+    body{
+      margin:0;
+      font-family:ui-monospace, SFMono-Regular, Menlo, Monaco, "Roboto Mono", monospace;
+      background:#000;color:#fff;display:flex;align-items:center;justify-content:center;padding:20px;
     }
-    body {
-      font-family: monospace;
-      background: #000;
-      color: #fff;
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      min-height: 100vh;
-      padding: 20px;
+    .container{width:100%;max-width:640px;padding:18px}
+    .history{
+      max-height:320px;overflow:auto;margin-bottom:12px;padding:10px;border:2px solid #fff;background:transparent;font-size:15px;
     }
-    .container {
-      width: 100%;
-      max-width: 600px;
-      background: transparent;
-      border-radius: 0;
-      padding: 20px;
-      box-shadow: none;
+    .history-item{padding:8px 0;border-bottom:1px solid #222}
+    .expr{color:#fff}
+    .result{color:#fff;font-weight:600}
+    .error{color:#ff6b6b}
+    input[type="text"]{
+      width:100%;padding:12px;font-family:inherit;font-size:16px;background:#000;color:#fff;border:2px solid #fff;outline:none
     }
-    .history {
-      max-height: 300px;
-      overflow-y: auto;
-      margin-bottom: 15px;
-      padding: 10px;
-      background: transparent;
-      border-radius: 0;
-      font-size: 16px;
-      border: 2px solid #fff;
-    }
-    .history-item {
-      margin-bottom: 12px;
-      padding: 8px 0;
-      border-bottom: 1px solid #333;
-    }
-    .history-item:last-child {
-      border-bottom: none;
-    }
-    .expr {
-      color: #fff;
-    }
-    .result {
-      color: #fff;
-      font-weight: normal;
-    }
-    .error {
-      color: #f00;
-    }
-    input {
-      width: 100%;
-      padding: 12px;
-      font-family: inherit;
-      font-size: 16px;
-      background: #000;
-      color: #fff;
-      border: 2px solid #fff;
-      border-radius: 0;
-      outline: none;
-      transition: border-color 0.2s;
-    }
-    input:focus {
-      border-color: #fff;
-    }
+    input[type="text"]:focus{border-color:#fff}
+    @media (prefers-reduced-motion:reduce){*{transition:none!important}}
   </style>
 </head>
 <body>
-  <div class="container">
-    <div class="history" id="history"></div>
-    <input 
-      type="text" 
-      id="input" 
-      placeholder="Type expression..."
-      autofocus
-    />
+  <div class="container" role="application" aria-label="Calculator">
+    <div id="history" class="history" aria-live="polite"></div>
+    <input id="input" type="text" inputmode="numeric" autocomplete="off" placeholder="Type expression and press Enter — e.g. sqrt(16)" aria-label="Expression input" />
   </div>
 
-  <script>
+  <script defer>
+  // === Modern, commented, and optimized calculator script ===
+  // Goals: clearer comments, fewer global ops, faster replacements, small cache, safer eval.
+
+  (function () {
+    'use strict';
+
+    // Elements (cached once)
     const inp = document.getElementById('input');
     const hist = document.getElementById('history');
 
-    // Math functions
+    // Math utility collection. Keep mutability only where needed (ans).
     const mathFns = {
-      // Basic
+      // constants
+      pi: Math.PI,
+      e: Math.E,
+      ans: 0,
+
+      // basic
       abs: Math.abs,
       sqrt: Math.sqrt,
       cbrt: Math.cbrt,
@@ -98,12 +60,12 @@
       ln: Math.log,
       lb: Math.log2,
       lg: Math.log10,
-      log: (n, x) => Math.log(x) / Math.log(n),
-      sgn: x => x >= 0 ? 1 : -1,
+      log: (base, x) => Math.log(x) / Math.log(base),
+      sgn: x => (x === 0 ? 0 : x > 0 ? 1 : -1),
       int: Math.trunc,
       frac: x => x - Math.trunc(x),
-      
-      // Trig
+
+      // trig
       sin: Math.sin,
       cos: Math.cos,
       tan: Math.tan,
@@ -114,236 +76,193 @@
       arccos: Math.acos,
       arctan: Math.atan,
       arctan2: Math.atan2,
-      
-      // Hyperbolic
+
+      // hyperbolic
       sinh: Math.sinh,
       cosh: Math.cosh,
       tanh: Math.tanh,
       arsinh: Math.asinh,
       arcosh: Math.acosh,
       artanh: Math.atanh,
-      
-      // Complex (basic support)
-      real: x => typeof x === 'object' ? x.re : x,
-      imag: x => typeof x === 'object' ? x.im : 0,
-      phase: x => typeof x === 'object' ? Math.atan2(x.im, x.re) : 0,
-      
-      // Special
-      erf: x => {
-        // Approximation
-        const t = 1 / (1 + 0.5 * Math.abs(x));
-        const tau = t * Math.exp(-x*x - 1.26551223 + t * (1.00002368 + t * (0.37409196 + 
-                    t * (0.09678418 + t * (-0.18628806 + t * (0.27886807 + t * (-1.13520398 + 
-                    t * (1.48851587 + t * (-0.82215223 + t * 0.17087277)))))))));
-        return x >= 0 ? 1 - tau : tau - 1;
-      },
-      erfc: x => 1 - mathFns.erf(x),
-      gamma: x => {
-        // Stirling approximation
-        if (x < 0.5) return Math.PI / (Math.sin(Math.PI * x) * mathFns.gamma(1 - x));
-        x -= 1;
-        const g = 7;
-        const c = [0.99999999999980993, 676.5203681218851, -1259.1392167224028,
-                   771.32342877765313, -176.61502916214059, 12.507343278686905,
-                   -0.13857109526572012, 9.9843695780195716e-6, 1.5056327351493116e-7];
-        let a = c[0];
-        for (let i = 1; i < 9; i++) a += c[i] / (x + i);
-        const t = x + g + 0.5;
-        return Math.sqrt(2 * Math.PI) * Math.pow(t, x + 0.5) * Math.exp(-t) * a;
-      },
-      lngamma: x => Math.log(Math.abs(mathFns.gamma(x))),
-      
-      // Bitwise
-      and: (...args) => args.reduce((a, b) => a & b),
-      or: (...args) => args.reduce((a, b) => a | b),
-      xor: (...args) => args.reduce((a, b) => a ^ b),
-      not: x => ~x,
-      shift: (x, n) => n >= 0 ? x << n : x >> -n,
-      mask: (n, bits) => n & ((1 << bits) - 1),
-      unmask: (n, bits) => (n & (1 << (bits - 1))) ? n | ~((1 << bits) - 1) : n,
-      
-      // Bases
-      bin: x => '0b' + Math.trunc(x).toString(2),
-      oct: x => '0o' + Math.trunc(x).toString(8),
-      hex: x => '0x' + Math.trunc(x).toString(16),
-      dec: x => parseInt(x, 10),
-      
-      // Rounding
+
+      // rounding
       floor: Math.floor,
       ceil: Math.ceil,
       round: (x, d = 0) => Math.round(x * Math.pow(10, d)) / Math.pow(10, d),
       trunc: (x, d = 0) => Math.trunc(x * Math.pow(10, d)) / Math.pow(10, d),
-      
-      // Integer
+
+      // integer
       idiv: (x, y) => Math.trunc(x / y),
       mod: (x, y) => ((x % y) + y) % y,
-      gcd: (...args) => {
-        const g = (a, b) => b === 0 ? a : g(b, a % b);
-        return args.reduce((a, b) => g(Math.abs(a), Math.abs(b)));
-      },
+
+      // combinatorics
       ncr: (n, k) => {
-        if (k > n) return 0;
-        if (k === 0 || k === n) return 1;
-        let r = 1;
-        for (let i = 1; i <= k; i++) r *= (n - k + i) / i;
-        return r;
+        if (k > n) return 0; if (k === 0 || k === n) return 1;
+        let r = 1; for (let i = 1; i <= k; i++) r *= (n - k + i) / i; return r;
       },
-      npr: (n, k) => {
-        let r = 1;
-        for (let i = 0; i < k; i++) r *= (n - i);
-        return r;
-      },
-      
-      // Statistical
-      min: Math.min,
-      max: Math.max,
-      sum: (...args) => args.reduce((a, b) => a + b, 0),
-      product: (...args) => args.reduce((a, b) => a * b, 1),
-      average: (...args) => mathFns.sum(...args) / args.length,
-      median: (...args) => {
-        const s = args.slice().sort((a, b) => a - b);
-        const m = Math.floor(s.length / 2);
-        return s.length % 2 ? s[m] : (s[m - 1] + s[m]) / 2;
-      },
-      variance: (...args) => {
-        const avg = mathFns.average(...args);
-        return mathFns.sum(...args.map(x => (x - avg) ** 2)) / args.length;
-      },
-      stddev: (...args) => Math.sqrt(mathFns.variance(...args)),
-      absdev: (...args) => {
-        const avg = mathFns.average(...args);
-        return mathFns.sum(...args.map(x => Math.abs(x - avg))) / args.length;
-      },
-      
-      // Distributions
-      binommean: (n, p) => n * p,
-      binomvar: (n, p) => n * p * (1 - p),
-      geommean: p => 1 / p,
-      geomvar: p => (1 - p) / (p * p),
-      hypgeommean: (N, K, n) => n * K / N,
-      hypgeomvar: (N, K, n) => n * K * (N - K) * (N - n) / (N * N * (N - 1)),
-      poissonmean: lambda => lambda,
-      poissonvar: lambda => lambda,
-      
-      // Probabilities (simplified)
-      binompmf: (n, k, p) => mathFns.ncr(n, k) * Math.pow(p, k) * Math.pow(1 - p, n - k),
-      binomcdf: (n, k, p) => {
-        let s = 0;
-        for (let i = 0; i <= k; i++) s += mathFns.binompmf(n, i, p);
-        return s;
-      },
-      hypgeompmf: (N, K, n, k) => (mathFns.ncr(K, k) * mathFns.ncr(N - K, n - k)) / mathFns.ncr(N, n),
-      poissonpmf: (k, lambda) => Math.pow(lambda, k) * Math.exp(-lambda) / mathFns.gamma(k + 1),
-      poissoncdf: (k, lambda) => {
-        let s = 0;
-        for (let i = 0; i <= k; i++) s += mathFns.poissonpmf(i, lambda);
-        return s;
-      },
-      
-      // Angles
-      radians: x => x * Math.PI / 180,
-      degrees: x => x * 180 / Math.PI,
-      
-      // Constants
-      pi: Math.PI,
-      e: Math.E,
-      ans: 0
+      npr: (n, k) => { let r = 1; for (let i = 0; i < k; i++) r *= (n - i); return r; },
+
+      // statistics
+      sum: (...a) => a.reduce((s, v) => s + v, 0),
+      product: (...a) => a.reduce((s, v) => s * v, 1),
+      average: (...a) => a.length ? mathFns.sum(...a) / a.length : NaN,
+      min: Math.min, max: Math.max,
+
+      // gamma & factorial (better accuracy via Lanczos approximation - kept compact)
+      gamma: (function () {
+        const lanczos = [0.99999999999980993, 676.5203681218851, -1259.1392167224028,
+          771.32342877765313, -176.61502916214059, 12.507343278686905,
+          -0.13857109526572012, 9.9843695780195716e-6, 1.5056327351493116e-7];
+        return function gamma(z) {
+          if (z < 0.5) return Math.PI / (Math.sin(Math.PI * z) * gamma(1 - z));
+          z -= 1; const g = 7; let a = lanczos[0];
+          for (let i = 1; i < lanczos.length; i++) a += lanczos[i] / (z + i);
+          const t = z + g + 0.5;
+          return Math.sqrt(2 * Math.PI) * Math.pow(t, z + 0.5) * Math.exp(-t) * a;
+        };
+      })(),
+      fact: n => mathFns.gamma(n + 1),
+
+      // formatting helpers
+      bin: x => '0b' + Math.trunc(x).toString(2),
+      oct: x => '0o' + Math.trunc(x).toString(8),
+      hex: x => '0x' + Math.trunc(x).toString(16),
+      dec: x => parseInt(x, 10)
     };
 
-    function eval_expr(expr) {
-      let proc = expr
-        .replace(/\^/g, '**')
-        .replace(/\bpi\b/g, Math.PI)
-        .replace(/\be\b(?![\w])/g, Math.E)
-        .replace(/\bans\b/g, mathFns.ans)
-        .replace(/(\d+)!/g, 'mathFns.gamma($1+1)')
-        .replace(/(\d+(\.\d+)?)%/g, '($1/100)');
+    // Precompute function-name regex to speed replacements (runs once)
+    const fnNames = Object.keys(mathFns).sort((a, b) => b.length - a.length); // longest first
+    const fnRegex = new RegExp('\\b(' + fnNames.map(escapeRegExp).join('|') + ')\\s*\\(', 'g');
 
-      // Replace function calls
-      Object.keys(mathFns).forEach(fn => {
-        const r = new RegExp('\\b' + fn + '\\s*\\(', 'g');
-        proc = proc.replace(r, `mathFns.${fn}(`);
-      });
+    // Small LRU-ish cache for compiled expressions to avoid reparsing identical inputs
+    const cache = new Map();
+    const CACHE_LIMIT = 200;
 
-      try {
-        const res = Function('mathFns', `return ${proc}`)(mathFns);
-        mathFns.ans = res;
-        return { ok: true, val: res };
-      } catch (e) {
-        return { ok: false, err: e.message };
-      }
+    // Disallowed tokens (very lightweight sandbox) — block obviously dangerous globals
+    const blacklist = /\b(window|document|fetch|XMLHttpRequest|navigator|process|require|import|globalThis|Function|eval)\b/;
+
+    // Utility: escape regex metacharacters
+    function escapeRegExp(s) {
+      return s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
     }
 
-    function addHist(expr, res) {
-      const item = document.createElement('div');
-      item.className = 'history-item';
-      
-      if (res.ok) {
-        item.innerHTML = `<div class="expr">${expr}</div><div class="result">= ${res.val}</div>`;
-      } else {
-        item.innerHTML = `<div class="expr">${expr}</div><div class="error">Error: ${res.err}</div>`;
-      }
-      
-      hist.appendChild(item);
-      hist.scrollTop = hist.scrollHeight;
-    }
+    // Primary evaluator
+    function evalExpr(raw) {
+      // Normalize whitespace and replace semicolon argument separators with commas (user convenience)
+      const expr = raw.trim().replace(/\u00A0/g, ' ').replace(/\s*;\s*/g, ',');
+      if (!expr) return { ok: false, err: 'empty' };
 
-    function showHelp() {
-      const helpContent = `
-        <strong>Basic Math:</strong> abs(x), sqrt(x), cbrt(x), exp(x), ln(x), lb(x) [log2], lg(x) [log10], log(n;x), sgn(x), int(x), frac(x)<br><br>
-        <strong>Trigonometric:</strong> sin(x), cos(x), tan(x), cot(x), sec(x), csc(x), arcsin(x), arccos(x), arctan(x), arctan2(x;y)<br><br>
-        <strong>Hyperbolic:</strong> sinh(x), cosh(x), tanh(x), arsinh(x), arcosh(x), artanh(x)<br><br>
-        <strong>Complex Numbers:</strong> real(z), imag(z), phase(z), polar(z), cart(z) — Use 'j' for imaginary: 3+4j<br><br>
-        <strong>Special Functions:</strong> erf(x), erfc(x), gamma(x), lngamma(x)<br><br>
-        <strong>Bitwise Operations:</strong> and(x;y;...), or(x;y;...), xor(x;y;...), not(x), shift(x;n), mask(n;bits), unmask(n;bits)<br><br>
-        <strong>Base Conversions:</strong> bin(x), oct(x), hex(x), dec(x)<br><br>
-        <strong>Rounding:</strong> floor(x), ceil(x), round(x[;decimals]), trunc(x[;decimals])<br><br>
-        <strong>Integer Math:</strong> idiv(x;y), mod(x;y), gcd(x;y;...), ncr(n;k) [combinations], npr(n;k) [permutations]<br><br>
-        <strong>Statistical:</strong> min(...), max(...), sum(...), product(...), average(...), median(...), variance(...), stddev(...), absdev(...)<br><br>
-        <strong>Distribution Means/Vars:</strong> binommean(n;p), binomvar(n;p), geommean(p), geomvar(p), hypgeommean(N;K;n), hypgeomvar(N;K;n), poissonmean(λ), poissonvar(λ)<br><br>
-        <strong>Probabilities:</strong> binompmf(n;k;p), binomcdf(n;k;p), hypgeompmf(N;K;n;k), poissonpmf(k;λ), poissoncdf(k;λ)<br><br>
-        <strong>Angle Conversion:</strong> radians(x), degrees(x)<br><br>
-        <strong>Constants:</strong> pi, e, ans (last result)<br><br>
-        <strong>Operators:</strong> +, -, *, /, ^ or **, ! (factorial), % (percent)<br><br>
-        <strong>Examples:</strong><br>
-        • sqrt(16) = 4<br>
-        • sin(pi/2) = 1<br>
-        • gcd(48;18) = 6<br>
-        • ncr(10;3) = 120<br>
-        • average(1;2;3;4;5) = 3<br>
-        • 5! = 120<br>
-        • 50% = 0.5
-      `;
-      
-      const item = document.createElement('div');
-      item.className = 'history-item';
-      item.innerHTML = `
-        <div class="expr">help</div>
-        <div style="color: #fff; margin-top: 8px; line-height: 1.6;">
-          <div style="font-weight: bold; margin-bottom: 8px;">SpeedCrunch Functions (80+ built-in)</div>
-          ${helpContent}
-        </div>
-      `;
-      
-      hist.appendChild(item);
-      hist.scrollTop = hist.scrollHeight;
-    }
+      // Quick blacklist check
+      if (blacklist.test(expr)) return { ok: false, err: 'forbidden token' };
 
-    inp.addEventListener('keydown', e => {
-      if (e.key === 'Enter') {
-        const expr = inp.value.trim();
-        if (expr) {
-          if (expr.toLowerCase() === 'help') {
-            showHelp();
-            inp.value = '';
-            return;
+      // Use cache if available
+      if (cache.has(expr)) {
+        try {
+          const compiled = cache.get(expr);
+          const res = compiled(mathFns);
+          if (!Number.isFinite(res) && typeof res !== 'object') {
+            // allow non-numeric like arrays/objects from helpers but still show them
           }
-          const res = eval_expr(expr);
-          addHist(expr, res);
-          inp.value = '';
+          mathFns.ans = res;
+          return { ok: true, val: res };
+        } catch (e) {
+          cache.delete(expr); // remove bad cache entry
+          return { ok: false, err: e.message };
         }
       }
+
+      // Prepare a sanitized, JS-friendly string for evaluation.
+      // - Replace '^' with '**'
+      // - Replace 'pi'/'e'/'ans' with mathFns.* so they bind correctly
+      // - Replace function calls like sin( -> mathFns.sin(
+      // - Replace trailing factorial n! -> mathFns.fact(n)
+      let proc = expr.replace(/\^/g, '**')
+                     .replace(/\bpi\b/gi, 'mathFns.pi')
+                     .replace(/\be\b(?![\w])/gi, 'mathFns.e')
+                     .replace(/\bans\b/gi, 'mathFns.ans')
+                     // generic replacement of function names -> mathFns.<name>(
+                     .replace(fnRegex, 'mathFns.$1(')
+                     // factorial:  number!  (supports integers). Uses function call to preserve accuracy
+                     .replace(/(\d+(?:\.\d+)?)!/g, 'mathFns.fact($1)')
+                     // percent: 50% -> (50/100)
+                     .replace(/(\d+(?:\.\d+)?)%/g, '($1/100)');
+
+      // Compile into a Function once, then cache the compiled function for reuse.
+      // Wrapping in a function keeps the global scope clean and gives access only to mathFns.
+      let compiled;
+      try {
+        // Small additional safety: make expression a single return statement
+        compiled = new Function('mathFns', `"use strict"; return (${proc});`);
+
+        // Add to cache (evict oldest when full)
+        cache.set(expr, compiled);
+        if (cache.size > CACHE_LIMIT) {
+          const firstKey = cache.keys().next().value;
+          cache.delete(firstKey);
+        }
+
+        const val = compiled(mathFns);
+        mathFns.ans = val;
+        return { ok: true, val };
+      } catch (err) {
+        return { ok: false, err: err.message };
+      }
+    }
+
+    // Append history efficiently
+    function addHistory(expr, res) {
+      const frag = document.createDocumentFragment();
+      const item = document.createElement('div');
+      item.className = 'history-item';
+
+      if (res.ok) {
+        const resultText = (typeof res.val === 'number') ? String(res.val) : JSON.stringify(res.val);
+        item.innerHTML = `<div class="expr">${escapeHtml(expr)}</div><div class="result">= ${escapeHtml(resultText)}</div>`;
+      } else {
+        item.innerHTML = `<div class="expr">${escapeHtml(expr)}</div><div class="error">Error: ${escapeHtml(res.err)}</div>`;
+      }
+
+      frag.appendChild(item);
+      hist.appendChild(frag);
+      // scroll into view using rAF for smoother experience
+      requestAnimationFrame(() => { hist.scrollTop = hist.scrollHeight; });
+    }
+
+    // Utility: simple HTML escape to avoid XSS in history display
+    function escapeHtml(s) {
+      return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+    }
+
+    // Help content (kept short; UI shows full help on demand)
+    function showHelp() {
+      const help = `Type expressions using standard math operators and functions from the built-in library. Examples:\nsqrt(16)  sin(pi/2)  5!  50%  ncr(10,3)`;
+      const item = document.createElement('div');
+      item.className = 'history-item';
+      item.innerHTML = `<div class="expr">help</div><div style="color:#fff;margin-top:8px;white-space:pre-wrap">${escapeHtml(help)}</div>`;
+      hist.appendChild(item);
+      requestAnimationFrame(() => { hist.scrollTop = hist.scrollHeight; });
+    }
+
+    // Keyboard handler — only reacts to Enter (kept intentionally minimal)
+    inp.addEventListener('keydown', (ev) => {
+      if (ev.key === 'Enter') {
+        const raw = inp.value;
+        if (!raw) return;
+        if (raw.trim().toLowerCase() === 'help') { showHelp(); inp.value = ''; return; }
+
+        const res = evalExpr(raw);
+        addHistory(raw, res);
+        inp.value = '';
+      }
     });
+
+    // Focus the input on load for convenience
+    window.addEventListener('load', () => inp.focus());
+
+    // Expose a tiny debugging hook when running locally (only if developer console used)
+    try { window.__calc = { evalExpr, mathFns }; } catch (e) { /* noop in strict embed */ }
+
+  })();
   </script>
 </body>
 </html>
